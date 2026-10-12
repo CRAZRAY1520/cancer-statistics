@@ -1,0 +1,926 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>台灣癌症死亡人數與趨勢 2008–2025</title>
+<meta name="description" content="衛福部死因統計的惡性腫瘤死亡人數，可依年度、癌別、縣市、性別、年齡層篩選。只有死亡人數，沒有死亡率。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@700&display=swap" rel="stylesheet">
+<style>
+:root {
+  color-scheme: light;
+  --paper: #efefec;
+  --surface: #fcfcfb;
+  --ink: #12161c;
+  --ink2: #444a54;
+  --muted: #666b73;
+  --grid: #e3e3de;
+  --axis: #c3c2b7;
+  --border: rgba(11,11,11,.12);
+  --wash: rgba(11,11,11,.05);
+  --bar: #5b6370;
+  --bar-off: #cfd1d4;
+  --callout: #f1f1ed;
+  --font: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", "Heiti TC", system-ui, sans-serif;
+  --serif: "Noto Serif TC", "Songti TC", "PMingLiU", serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --paper: #0d0d0d;
+    --surface: #1a1a19;
+    --ink: #f3f3f1;
+    --ink2: #c3c2b7;
+    --muted: #9a9a93;
+    --grid: #2c2c2a;
+    --axis: #383835;
+    --border: rgba(255,255,255,.12);
+    --wash: rgba(255,255,255,.07);
+    --bar: #9aa3b0;
+    --bar-off: #3a3d42;
+    --callout: #232322;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font: 15px/1.65 var(--font); -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 20px; }
+
+/* ---------- header ---------- */
+.top { padding: 40px 0 22px; }
+.top h1 {
+  margin: 0; font: 700 clamp(28px, 5.2vw, 46px)/1.15 var(--serif); letter-spacing: .01em;
+}
+.top .lede { margin: 12px 0 0; max-width: 62ch; color: var(--ink2); }
+.top .caveat { margin: 6px 0 0; max-width: 62ch; color: var(--ink); font-weight: 500; }
+
+/* ---------- filter bar ---------- */
+.filters {
+  position: sticky; top: 0; z-index: 20; background: var(--paper);
+  border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+}
+.filters .wrap {
+  display: flex; flex-wrap: wrap; gap: 12px 18px; padding-top: 12px; padding-bottom: 12px; align-items: flex-end;
+}
+.f { min-width: 0; flex: none; }
+.f.range-f { flex: 1 1 200px; max-width: 230px; }
+.f.ms-f { flex: 0 1 150px; }
+.f > .lab { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface); }
+.seg button { border: 0; background: none; padding: 7px 13px; cursor: pointer; font-size: 14px; }
+.seg button + button { border-left: 1px solid var(--border); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+.chips { display: flex; flex-wrap: nowrap; gap: 3px; }
+.chips button {
+  border: 1px solid var(--border); background: var(--surface); border-radius: 8px;
+  padding: 6px 7px; font-size: 13px; cursor: pointer; min-width: 38px;
+}
+.chips button[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.reset {
+  border: 1px solid var(--border); background: var(--surface); border-radius: 8px;
+  padding: 7px 14px; cursor: pointer; font-size: 14px;
+}
+.reset:hover, .seg button:hover:not([aria-pressed="true"]), .chips button:hover:not([aria-pressed="true"]) { background: var(--wash); }
+
+/* year range */
+.range { position: relative; padding-top: 2px; }
+.range .val { font-weight: 700; font-size: 15px; font-variant-numeric: tabular-nums; }
+.range-track { position: relative; height: 26px; }
+.range-track::before { content: ""; position: absolute; left: 0; right: 0; top: 11px; height: 4px; border-radius: 2px; background: var(--grid); }
+.range-fill { position: absolute; top: 11px; height: 4px; border-radius: 2px; background: var(--ink); }
+.range-track input {
+  position: absolute; left: 0; top: 0; width: 100%; height: 26px; margin: 0;
+  background: none; pointer-events: none; -webkit-appearance: none; appearance: none;
+}
+.range-track input::-webkit-slider-runnable-track { background: none; height: 26px; }
+.range-track input::-moz-range-track { background: none; height: 26px; }
+.range-track input::-webkit-slider-thumb {
+  -webkit-appearance: none; pointer-events: auto; width: 20px; height: 20px; margin-top: 3px; border-radius: 50%;
+  background: var(--ink); border: 3px solid var(--surface); box-shadow: 0 0 0 1px var(--ink); cursor: grab;
+}
+.range-track input::-moz-range-thumb {
+  pointer-events: auto; width: 14px; height: 14px; border-radius: 50%;
+  background: var(--ink); border: 3px solid var(--surface); box-shadow: 0 0 0 1px var(--ink); cursor: grab;
+}
+.range-ticks { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* multi-select */
+.ms { position: relative; }
+.ms-btn {
+  width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  border: 1px solid var(--border); background: var(--surface); border-radius: 8px; padding: 7px 10px; cursor: pointer; text-align: left;
+}
+.ms-btn::after { content: ""; width: 7px; height: 7px; border: solid var(--muted); border-width: 0 2px 2px 0; transform: rotate(45deg) translateY(-2px); flex: none; }
+.ms-btn .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+.ms-panel {
+  position: absolute; left: 0; top: calc(100% + 6px); z-index: 30; width: max(100%, 260px); max-height: 340px; overflow: auto;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.18); padding: 6px;
+}
+.ms-panel[hidden] { display: none; }
+.ms-act { display: flex; gap: 6px; padding: 4px 6px 8px; border-bottom: 1px solid var(--grid); margin-bottom: 4px; position: sticky; top: -6px; background: var(--surface); }
+.ms-act button { border: 1px solid var(--border); background: none; border-radius: 6px; padding: 3px 10px; font-size: 13px; cursor: pointer; }
+.ms-list { list-style: none; margin: 0; padding: 0; columns: 1; }
+.ms-list.two { columns: 2; column-gap: 4px; }
+.ms-list label { display: flex; gap: 8px; align-items: center; padding: 6px 8px; border-radius: 6px; cursor: pointer; font-size: 14px; break-inside: avoid; }
+.ms-list label:hover { background: var(--wash); }
+.ms-list input { width: 16px; height: 16px; accent-color: var(--ink); margin: 0; }
+
+/* ---------- KPI ---------- */
+.kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin: 22px 0 14px; }
+.kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px 14px; min-width: 0; }
+.kpi .k { font-size: 13px; color: var(--ink2); }
+.kpi .v { font-size: clamp(28px, 3.4vw, 40px); font-weight: 700; line-height: 1.15; margin: 4px 0 2px; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.kpi .v small { font-size: 15px; font-weight: 500; margin-left: 4px; color: var(--ink2); letter-spacing: 0; }
+.kpi .s { font-size: 12.5px; color: var(--muted); }
+
+/* ---------- cards ---------- */
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 18px 14px; min-width: 0; }
+.card.wide { grid-column: 1 / -1; }
+.card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.card h2 { margin: 0; font: 700 18px/1.35 var(--font); }
+.card .unit { color: var(--muted); font-weight: 400; font-size: 13px; margin-left: 6px; }
+.insight { margin: 6px 0 4px; color: var(--ink); font-size: 14.5px; min-height: 1.65em; max-width: 78ch; }
+.plot { position: relative; }
+.chart { width: 100%; height: 340px; }
+.chart.tall { height: 420px; }
+.empty {
+  position: absolute; inset: 0; display: none; align-items: center; justify-content: center; flex-direction: column; gap: 10px;
+  text-align: center; background: var(--surface); color: var(--ink2); padding: 20px;
+}
+.empty.on { display: flex; }
+.empty button { border: 1px solid var(--border); background: var(--surface); border-radius: 8px; padding: 6px 14px; cursor: pointer; }
+.note { margin: 6px 0 0; font-size: 12.5px; color: var(--muted); max-width: 80ch; }
+details.tbl { margin-top: 8px; font-size: 13px; }
+details.tbl summary { cursor: pointer; color: var(--ink2); width: max-content; }
+.tbl-scroll { overflow: auto; max-height: 280px; margin-top: 8px; border: 1px solid var(--grid); border-radius: 8px; }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+#ftCancers th { text-align: left; }
+th, td { padding: 5px 10px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--grid); }
+th:first-child, td:first-child { text-align: left; }
+thead th { position: sticky; top: 0; background: var(--surface); font-weight: 500; }
+
+/* ---------- footer ---------- */
+footer { margin: 34px 0 0; padding: 30px 0 56px; border-top: 1px solid var(--border); }
+footer h2 { margin: 0 0 8px; font: 700 17px/1.4 var(--font); }
+footer section { margin-bottom: 28px; }
+footer p, footer li { max-width: 78ch; color: var(--ink2); }
+footer ul { padding-left: 20px; margin: 8px 0 0; }
+.callout { background: var(--callout); border-left: 4px solid var(--ink); border-radius: 0 8px 8px 0; padding: 12px 16px; margin: 0 0 10px; color: var(--ink) !important; font-weight: 500; }
+.src dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 18px; margin: 0; }
+.src dt { color: var(--muted); }
+.src dd { margin: 0; }
+
+/* ---------- misc ---------- */
+.fatal { margin: 16px 0; padding: 12px 16px; border: 1px solid var(--ink); border-radius: 8px; background: var(--callout); }
+.fatal[hidden] { display: none; }
+
+@media (max-width: 960px) {
+  .filters .f.range-f { flex-basis: 100%; max-width: none; }
+  .kpis { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 760px) {
+  .wrap { padding: 0 16px; }
+  .top { padding-top: 26px; }
+  .filters { position: static; }
+  .grid { grid-template-columns: 1fr; }
+  .card { padding: 14px 12px 12px; }
+  .chart { height: 320px; }
+  .chart.tall { height: 440px; }
+  .ms-panel { width: 100%; }
+  .f.ms-f { flex: 1 1 150px; }
+  .src dl { grid-template-columns: 1fr; gap: 0; }
+  .src dd { margin-bottom: 8px; }
+}
+@media (max-width: 420px) {
+  .f.ms-f { flex: 1 1 100%; }
+  .chips { flex-wrap: wrap; }
+  .kpis { gap: 10px; }
+  .kpi { padding: 12px 12px 10px; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <h1>台灣癌症死亡人數與趨勢 2008–2025</h1>
+    <p class="lede">衛生福利部統計處死因統計中的惡性腫瘤，共 22 縣市、11 類癌別。可依年度、癌別、縣市、性別、年齡層篩選，四張圖會一起變。</p>
+    <p class="caveat">這裡只有死亡人數，沒有死亡率，也不是癌症發生資料。</p>
+  </div>
+</header>
+
+<div class="filters" role="region" aria-label="篩選條件">
+  <div class="wrap">
+    <div class="f range-f">
+      <span class="lab">年度區間</span>
+      <div class="range">
+        <div class="val" id="yrLabel" aria-live="polite"></div>
+        <div class="range-track">
+          <div class="range-fill" id="rangeFill"></div>
+          <input type="range" id="y0" aria-label="起始年度" step="1">
+          <input type="range" id="y1" aria-label="結束年度" step="1">
+        </div>
+        <div class="range-ticks"><span id="tickL"></span><span id="tickR"></span></div>
+      </div>
+    </div>
+    <div class="f ms-f"><span class="lab">癌別</span><div class="ms" id="msCancer"></div></div>
+    <div class="f ms-f"><span class="lab">縣市</span><div class="ms" id="msCounty"></div></div>
+    <div class="f"><span class="lab">性別</span>
+      <div class="seg" id="segSex" role="group" aria-label="性別">
+        <button type="button" data-v="all" aria-pressed="true">全部</button>
+        <button type="button" data-v="0" aria-pressed="false">男</button>
+        <button type="button" data-v="1" aria-pressed="false">女</button>
+      </div>
+    </div>
+    <div class="f"><span class="lab">年齡層（歲）</span><div class="chips" id="chipsAge" role="group" aria-label="年齡層"></div></div>
+    <div class="f"><button type="button" class="reset" id="btnReset">重設篩選</button></div>
+  </div>
+</div>
+
+<main class="wrap">
+  <div class="fatal" id="fatal" hidden></div>
+
+  <section class="kpis" aria-label="重點數字">
+    <div class="kpi"><div class="k" id="k1l"></div><div class="v" id="k1v">—</div><div class="s" id="k1s"></div></div>
+    <div class="kpi"><div class="k" id="k2l"></div><div class="v" id="k2v">—</div><div class="s" id="k2s"></div></div>
+    <div class="kpi"><div class="k" id="k3l"></div><div class="v" id="k3v">—</div><div class="s" id="k3s"></div></div>
+    <div class="kpi"><div class="k" id="k4l"></div><div class="v" id="k4v">—</div><div class="s" id="k4s"></div></div>
+  </section>
+
+  <div class="grid">
+    <article class="card wide" id="cardTrend">
+      <div class="card-head">
+        <h2>歷年死亡趨勢<span class="unit">單位：人</span></h2>
+        <div class="seg" data-chart="trend" role="group" aria-label="趨勢圖型">
+          <button type="button" data-v="line" aria-pressed="true">折線（總數）</button>
+          <button type="button" data-v="area" aria-pressed="false">堆疊面積（依癌別）</button>
+        </div>
+      </div>
+      <p class="insight" id="in-trend"></p>
+      <div class="plot"><div class="chart" id="ch-trend"></div><div class="empty" id="em-trend"></div></div>
+      <p class="note" id="nt-trend"></p>
+      <details class="tbl"><summary>檢視數字</summary><div class="tbl-scroll" id="tb-trend"></div></details>
+    </article>
+
+    <article class="card" id="cardRank">
+      <div class="card-head">
+        <h2>癌別排名<span class="unit">單位：人</span></h2>
+        <div class="seg" data-chart="rank" role="group" aria-label="排名圖型">
+          <button type="button" data-v="bar" aria-pressed="true">橫條</button>
+          <button type="button" data-v="col" aria-pressed="false">直條</button>
+        </div>
+      </div>
+      <p class="insight" id="in-rank"></p>
+      <div class="plot"><div class="chart tall" id="ch-rank"></div><div class="empty" id="em-rank"></div></div>
+      <p class="note">點擊癌別就會在篩選列選取它，再點一次取消。此圖固定顯示全部癌別，不受癌別篩選影響。「其他癌症」是未單獨列出的多種癌別合計，固定放在最後，不參與排名。</p>
+      <details class="tbl"><summary>檢視數字</summary><div class="tbl-scroll" id="tb-rank"></div></details>
+    </article>
+
+    <article class="card" id="cardSex">
+      <div class="card-head">
+        <h2>男女比較<span class="unit">單位：人</span></h2>
+        <div class="seg" data-chart="sex" role="group" aria-label="男女圖型">
+          <button type="button" data-v="butterfly" aria-pressed="true">蝴蝶圖</button>
+          <button type="button" data-v="group" aria-pressed="false">分組長條</button>
+        </div>
+      </div>
+      <p class="insight" id="in-sex"></p>
+      <div class="plot"><div class="chart tall" id="ch-sex"></div><div class="empty" id="em-sex"></div></div>
+      <p class="note" id="nt-sex"></p>
+      <details class="tbl"><summary>檢視數字</summary><div class="tbl-scroll" id="tb-sex"></div></details>
+    </article>
+
+    <article class="card wide" id="cardAge">
+      <div class="card-head">
+        <h2>年齡結構變化<span class="unit">單位：占該年死亡人數的百分比</span></h2>
+        <div class="seg" data-chart="age" role="group" aria-label="年齡圖型">
+          <button type="button" data-v="area" aria-pressed="true">百分比面積</button>
+          <button type="button" data-v="bar" aria-pressed="false">百分比長條</button>
+        </div>
+      </div>
+      <p class="insight" id="in-age"></p>
+      <div class="plot"><div class="chart" id="ch-age"></div><div class="empty" id="em-age"></div></div>
+      <p class="note">此圖固定顯示全部年齡層，不受年齡層篩選影響。占比上升部分反映人口老化，不代表各年齡的癌症風險改變。</p>
+      <details class="tbl"><summary>檢視數字</summary><div class="tbl-scroll" id="tb-age"></div></details>
+    </article>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <section>
+      <h2>使用前請注意</h2>
+      <p class="callout">這份資料只有死亡人數，沒有考慮人口數與人口老化，不能直接用來比較各縣市的癌症風險。</p>
+      <p class="callout">這是死亡資料，不是癌症發生（新診斷）資料。</p>
+      <ul id="ftNotes"></ul>
+    </section>
+    <section class="src">
+      <h2>資料來源</h2>
+      <dl id="ftSrc"></dl>
+    </section>
+    <section>
+      <h2>癌別對照</h2>
+      <div class="tbl-scroll" style="max-height:none"><table id="ftCancers"></table></div>
+      <p class="note">圖中的癌別名稱是縮短後的常用名稱；原始名稱和 ICD-10 如上。</p>
+    </section>
+    <section>
+      <h2>原始資料與程式</h2>
+      <p>原始檔、整理資料的程式和驗證程式都在 <a href="https://github.com/CRAZRAY1520/cancer-statistics" target="_blank" rel="noopener">GitHub：CRAZRAY1520/cancer-statistics</a>。</p>
+    </section>
+  </div>
+</footer>
+
+<script src="data.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
+<script>
+(function () {
+  'use strict';
+  var D = window.CANCER_DATA;
+  var fatal = document.getElementById('fatal');
+  if (!D) { fatal.hidden = false; fatal.textContent = '找不到 data.js。請確認 data.js 和 index.html 放在同一個資料夾。'; return; }
+  var HAS_ECHARTS = !!window.echarts;
+  if (!HAS_ECHARTS) {
+    fatal.hidden = false;
+    fatal.textContent = '圖表元件（ECharts）載入失敗，請確認網路連線後重新整理。重點數字與「檢視數字」表格仍可使用。';
+  }
+
+  /* ---------- data ---------- */
+  var years = D.dims.years, counties = D.dims.counties, cancers = D.dims.cancers, ageGroups = D.dims.ageGroups;
+  var SEXES = D.dims.sexes;                         // ['男','女']
+  var C = D.cols, N = C.n.length, NY = years.length;
+  var NK = cancers.length, NC = counties.length, NA = ageGroups.length;
+  var NAMED = 6;                                    // 前 6 大癌別各有專屬顏色，其餘折疊
+  var SEX_SPECIFIC = ['攝護腺癌', '乳癌'];            // 男性特有／幾乎只發生在女性，不判斷「男性偏高」
+  var MALE_RATIO = 2;                               // 男性達女性 N 倍以上，標示為「明顯偏高」
+  var FOLD_NAME = '其餘癌別';
+  var FONT = '"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif';
+  var REDUCED = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var fmt = function (n) { return Math.round(n).toLocaleString('en-US'); };
+  var pct = function (x, d) { return (x * 100).toFixed(d == null ? 1 : d) + '%'; };
+  var ageLabel = function (i) { var g = ageGroups[i]; return g === '85+' ? '85 歲以上' : g + ' 歲'; };
+  var $ = function (id) { return document.getElementById(id); };
+
+  /* ---------- colours (validated with the dataviz palette checker) ---------- */
+  var PAL = {
+    light: {
+      cancer: ['#1baf7a', '#eda100', '#e87ba4', '#008300', '#4a3aa7', '#e34948'],  // categorical slots 3–8
+      fold: '#aeaca3',
+      sex: ['#2a78d6', '#eb6834'],                                                  // slots 1–2
+      age: ['#a79de8', '#8e82df', '#7466d2', '#5a4bc0', '#4a3aa7', '#33267f']       // ordinal, 1 hue
+    },
+    dark: {
+      cancer: ['#199e70', '#c98500', '#d55181', '#008300', '#9085e9', '#e66767'],
+      fold: '#6a6962',
+      sex: ['#3987e5', '#d95926'],
+      age: ['#5848bd', '#6e60d0', '#8478df', '#9b92ec', '#b4adf5', '#cfcaff']
+    }
+  };
+  function theme() {
+    var cs = getComputedStyle(document.documentElement);
+    var v = function (n) { return cs.getPropertyValue(n).trim(); };
+    var dark = window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches;
+    return {
+      p: dark ? PAL.dark : PAL.light,
+      surface: v('--surface'), ink: v('--ink'), ink2: v('--ink2'), muted: v('--muted'),
+      grid: v('--grid'), axis: v('--axis'), bar: v('--bar'), barOff: v('--bar-off')
+    };
+  }
+
+  /* ---------- state ---------- */
+  var all = function (n) { var s = new Set(); for (var i = 0; i < n; i++) s.add(i); return s; };
+  var S = {
+    y0: 0, y1: NY - 1,
+    cancers: all(NK), counties: all(NC), ages: all(NA), sex: 'all',
+    view: { trend: 'line', rank: 'bar', sex: 'butterfly', age: 'area' }
+  };
+
+  /* ---------- aggregation ---------- */
+  function flags(set, n) { var f = new Uint8Array(n); set.forEach(function (i) { f[i] = 1; }); return f; }
+  function compute() {
+    var fc = flags(S.counties, NC), fk = flags(S.cancers, NK), fa = flags(S.ages, NA);
+    var M = {
+      total: new Array(NY).fill(0),
+      yk: [], rank: new Array(NK).fill(0), ks: [], ya: [], rangeTotal: 0
+    };
+    var i, k, a;
+    for (k = 0; k < NK; k++) { M.yk.push(new Array(NY).fill(0)); M.ks.push([0, 0]); }
+    for (i = 0; i < NY; i++) M.ya.push(new Array(NA).fill(0));
+    for (i = 0; i < N; i++) {
+      var yi = C.y[i];
+      if (yi < S.y0 || yi > S.y1 || !fc[C.c[i]]) continue;
+      var ki = C.k[i], si = C.s[i], ai = C.a[i], n = C.n[i];
+      var okK = fk[ki], okA = fa[ai], okS = S.sex === 'all' || S.sex === si;
+      if (okK && okA && okS) { M.total[yi] += n; M.yk[ki][yi] += n; M.rangeTotal += n; }
+      if (okA && okS) M.rank[ki] += n;                      // 排名：忽略癌別篩選
+      if (okK && okA) M.ks[ki][si] += n;                    // 男女：忽略性別篩選
+      if (okK && okS) M.ya[yi][ai] += n;                    // 年齡：忽略年齡層篩選
+    }
+    return M;
+  }
+
+  /* ---------- charts ---------- */
+  var charts = {}, lastKey = {};
+  function chartOf(id) {
+    if (!HAS_ECHARTS) return null;
+    if (!charts[id]) {
+      charts[id] = echarts.init($('ch-' + id));
+      new ResizeObserver(function () { charts[id].resize(); }).observe($('ch-' + id));
+    }
+    return charts[id];
+  }
+  function base(T) {
+    return {
+      animation: !REDUCED, animationDuration: 600, animationDurationUpdate: 700, animationEasingUpdate: 'cubicInOut',
+      textStyle: { fontFamily: FONT, color: T.ink2 },
+      tooltip: {
+        trigger: 'axis', confine: true, backgroundColor: T.surface, borderColor: T.axis, borderWidth: 1,
+        textStyle: { color: T.ink, fontFamily: FONT, fontSize: 13 }, extraCssText: 'box-shadow:0 6px 20px rgba(0,0,0,.18);'
+      }
+    };
+  }
+  function axisCommon(T) {
+    return {
+      axisLine: { lineStyle: { color: T.axis } }, axisTick: { show: false },
+      axisLabel: { color: T.muted, fontSize: 12 }, splitLine: { lineStyle: { color: T.grid } },
+      nameTextStyle: { color: T.ink2, fontSize: 12 }
+    };
+  }
+  function push(id, opt, key) {
+    var ch = chartOf(id); if (!ch) return;
+    var full = lastKey[id] !== key;
+    lastKey[id] = key;
+    ch.setOption(opt, full ? { notMerge: true } : { replaceMerge: ['series'] });
+  }
+  function clearChart(id) { var ch = chartOf(id); if (ch) { ch.clear(); lastKey[id] = null; } }
+
+  function narrow(id) { var ch = chartOf(id); return ch ? ch.getWidth() < 560 : false; }
+  function xsRange() { return years.slice(S.y0, S.y1 + 1); }
+  function sliceR(arr) { return arr.slice(S.y0, S.y1 + 1); }
+
+  /* --- 1. trend --- */
+  function trendSeries(M) {
+    var list = [], k, foldIdx = [];
+    for (k = 0; k < NK; k++) {
+      if (!S.cancers.has(k)) continue;
+      if (k < NAMED) list.push({ name: cancers[k], k: k, data: sliceR(M.yk[k]), color: null });
+      else foldIdx.push(k);
+    }
+    if (foldIdx.length) {
+      var d = sliceR(M.total).map(function () { return 0; });
+      foldIdx.forEach(function (kk) { sliceR(M.yk[kk]).forEach(function (v, j) { d[j] += v; }); });
+      list.push({ name: foldIdx.length === 1 ? cancers[foldIdx[0]] : FOLD_NAME, k: -1, data: d, fold: foldIdx });
+    }
+    return list;
+  }
+  function trendOption(M, T) {
+    var xs = xsRange(), o = base(T), ax = axisCommon(T), ser, legend = { show: false };
+    var totals = sliceR(M.total);
+    if (S.view.trend === 'line') {
+      ser = [{
+        id: 'total', name: '死亡總數', type: 'line', data: totals, symbol: 'circle', symbolSize: 8,
+        lineStyle: { width: 2.5, color: T.ink }, itemStyle: { color: T.ink, borderColor: T.surface, borderWidth: 2 },
+        endLabel: { show: true, formatter: function (p) { return fmt(p.value); }, color: T.ink, fontWeight: 700, fontSize: 13 },
+        universalTransition: true
+      }];
+    } else {
+      var list = trendSeries(M);
+      ser = list.map(function (s) {
+        var color = s.k >= 0 ? T.p.cancer[s.k] : T.p.fold;
+        return {
+          id: s.name, name: s.name, type: 'line', stack: 'all', data: s.data, symbol: 'none',
+          areaStyle: { color: color, opacity: 1 }, lineStyle: { width: 1.5, color: T.surface }, itemStyle: { color: color },
+          emphasis: { focus: 'series' }, universalTransition: true
+        };
+      });
+      legend = { show: true, top: 0, left: 0, icon: 'roundRect', itemWidth: 12, itemHeight: 8, textStyle: { color: T.ink2, fontSize: 12 } };
+    }
+    var area = S.view.trend === 'area';
+    o.legend = legend;
+    o.grid = { left: 8, right: area ? 36 : 64, top: area ? (narrow('trend') ? 96 : 66) : 44, bottom: 8, containLabel: true };
+    o.xAxis = Object.assign({ type: 'category', data: xs, name: '年度', nameLocation: 'end', nameGap: 8, boundaryGap: !area ? true : false }, ax, { splitLine: { show: false } });
+    o.yAxis = Object.assign({ type: 'value', min: 0, name: '死亡人數（人）', nameLocation: 'end', nameTextStyle: { align: 'left', color: T.ink2, fontSize: 12 } }, ax,
+      { axisLabel: { color: T.muted, fontSize: 12, formatter: function (v) { return fmt(v); } } });
+    o.tooltip.formatter = function (ps) {
+      var rows = ps.slice(), tot = 0;
+      if (area) rows.reverse();
+      var html = '<b>' + ps[0].axisValue + ' 年</b>';
+      rows.forEach(function (p) { tot += p.value; html += '<div>' + p.marker + p.seriesName + '　<b>' + fmt(p.value) + '</b> 人</div>'; });
+      if (area) html += '<div style="margin-top:4px;border-top:1px solid ' + T.grid + ';padding-top:4px">合計　<b>' + fmt(tot) + '</b> 人</div>';
+      return html;
+    };
+    o.series = ser;
+    return o;
+  }
+
+  /* --- 2. rank --- */
+  var OTHER_K = cancers.indexOf('其他癌症');        // 多種癌別的合計，固定排最後、不參與排名
+  function rankOrder(M) {
+    var named = [], k;
+    for (k = 0; k < NK; k++) if (k !== OTHER_K) named.push(k);
+    named.sort(function (a, b) { return M.rank[b] - M.rank[a]; });
+    return OTHER_K >= 0 ? named.concat([OTHER_K]) : named;
+  }
+  function rankOption(M, T) {
+    var ord = rankOrder(M), allSel = S.cancers.size === NK, horizontal = S.view.rank === 'bar';
+    var o = base(T), ax = axisCommon(T);
+    var data = ord.map(function (k) {
+      var on = allSel || S.cancers.has(k);
+      return { name: cancers[k], value: M.rank[k], itemStyle: { color: allSel ? T.bar : (on ? T.ink : T.barOff), borderRadius: horizontal ? [0, 4, 4, 0] : [4, 4, 0, 0] } };
+    });
+    var names = ord.map(function (k) { return cancers[k]; });
+    var total = M.rank.reduce(function (a, b) { return a + b; }, 0);
+    var cat = Object.assign({ type: 'category', data: names, inverse: horizontal, triggerEvent: true }, ax, { splitLine: { show: false } });
+    var val = Object.assign({ type: 'value', name: '死亡人數（人）' }, ax, { axisLabel: { color: T.muted, fontSize: 12, formatter: function (v) { return fmt(v); } } });
+    if (horizontal) {
+      o.grid = { left: 8, right: 56, top: 28, bottom: 40, containLabel: true };
+      cat.name = '癌別'; cat.nameLocation = 'start'; cat.nameGap = 8; cat.nameTextStyle = { align: 'right', color: T.ink2, fontSize: 12 };
+      cat.axisLabel = { color: T.ink, fontSize: 13 };
+      val.nameLocation = 'middle'; val.nameGap = 28; val.splitNumber = 4;
+      o.xAxis = val; o.yAxis = cat;
+    } else {
+      o.grid = { left: 8, right: 30, top: 44, bottom: 8, containLabel: true };
+      cat.name = '癌別'; cat.nameLocation = 'end'; cat.nameGap = 6;
+      cat.axisLabel = { color: T.ink, fontSize: 12, interval: 0, rotate: 32 };
+      val.nameLocation = 'end'; val.nameTextStyle = { align: 'left', color: T.ink2, fontSize: 12 };
+      o.xAxis = cat; o.yAxis = val;
+    }
+    o.tooltip.trigger = 'item';
+    o.tooltip.formatter = function (p) {
+      var k = cancers.indexOf(p.name);
+      return '<b>' + p.name + '</b><div>' + fmt(p.value) + ' 人　占 ' + pct(total ? p.value / total : 0) + '</div><div style="color:' + T.muted + '">' + (k === OTHER_K ? '多種癌別合計，不參與排名' : '第 ' + (ord.indexOf(k) + 1) + ' 名') + '</div>';
+    };
+    o.series = [{
+      id: 'rank', type: 'bar', data: data, barMaxWidth: 26, cursor: 'pointer',
+      label: { show: horizontal || !narrow('rank'), position: horizontal ? 'right' : 'top', color: T.ink, fontSize: 12, formatter: function (p) { return fmt(p.value); } },
+      universalTransition: true
+    }];
+    return o;
+  }
+
+  /* --- 3. sex --- */
+  function sexRows(M) {
+    var rows = [];
+    for (var k = 0; k < NK; k++) {
+      if (!S.cancers.has(k)) continue;
+      var m = M.ks[k][0], f = M.ks[k][1];
+      rows.push({ k: k, name: cancers[k], m: m, f: f, tot: m + f, ratio: f > 0 ? m / f : (m > 0 ? Infinity : 0), specific: SEX_SPECIFIC.indexOf(cancers[k]) >= 0 });
+      rows[rows.length - 1].flag = !rows[rows.length - 1].specific && m > 0 && m >= MALE_RATIO * f;
+    }
+    rows.sort(function (a, b) { return (a.k === OTHER_K) - (b.k === OTHER_K) || b.tot - a.tot; });
+    return rows;
+  }
+  function ratioText(r) { return r.ratio === Infinity ? '僅男性' : r.ratio.toFixed(1) + ' 倍'; }
+  function sexOption(M, T) {
+    var rows = sexRows(M), o = base(T), ax = axisCommon(T), names = rows.map(function (r) { return r.name; });
+    var flagged = {}, specific = {}; rows.forEach(function (r) { if (r.flag) flagged[r.name] = true; if (r.specific) specific[r.name] = true; });
+    var fmtAbs = function (v) { return fmt(Math.abs(v)); };
+    var maxV = rows.reduce(function (a, r) { return Math.max(a, r.m, r.f); }, 0);
+    o.legend = { show: true, top: 0, left: 0, icon: 'roundRect', itemWidth: 12, itemHeight: 8, textStyle: { color: T.ink2, fontSize: 12 } };
+    o.tooltip.formatter = function (ps) {
+      var r = rows[ps[0].dataIndex]; if (!r) return '';
+      return '<b>' + r.name + '</b>' +
+        '<div>' + ps[0].marker.replace(/background-color:[^;]+/, 'background-color:' + T.p.sex[0]) + '男　<b>' + fmt(r.m) + '</b> 人</div>' +
+        '<div>' + ps[0].marker.replace(/background-color:[^;]+/, 'background-color:' + T.p.sex[1]) + '女　<b>' + fmt(r.f) + '</b> 人</div>' +
+        '<div style="margin-top:4px;border-top:1px solid ' + T.grid + ';padding-top:4px">' + (r.specific ? '性別特有，不判斷男女偏高' : '男 ÷ 女　<b>' + ratioText(r) + '</b>' + (r.flag ? '　▲ 男性明顯偏高' : '')) + '</div>';
+    };
+    var ratioOf = {}; rows.forEach(function (r) { ratioOf[r.name] = ratioText(r); });
+    var catLabel = function (v) { return flagged[v] ? '{f|▲ ' + ratioOf[v] + '} ' + v : specific[v] ? '{s|性別特有} ' + v : v; };
+    var richSet = { f: { color: T.ink, fontSize: 11, fontWeight: 700 }, s: { color: T.muted, fontSize: 11 } };
+    if (S.view.sex === 'butterfly') {
+      var raw = Math.max(maxV, 1) * 1.3, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+      var ext = Math.ceil(raw / (mag / 2)) * (mag / 2);
+      o.grid = { left: 8, right: 30, top: 34, bottom: 44, containLabel: true };
+      o.xAxis = Object.assign({ type: 'value', min: -ext, max: ext, splitNumber: 4, name: '死亡人數（人）　左：男　右：女', nameLocation: 'middle', nameGap: 30 }, ax,
+        { axisLabel: { color: T.muted, fontSize: 12, formatter: fmtAbs, hideOverlap: true }, nameTextStyle: { color: T.ink2, fontSize: 12 } });
+      o.yAxis = Object.assign({ type: 'category', data: names, inverse: true, axisPointer: { type: 'shadow' } }, ax, {
+        splitLine: { show: false }, axisLine: { show: false, onZero: false },
+        axisLabel: { color: T.ink, fontSize: 13, formatter: catLabel, rich: richSet }
+      });
+      o.series = [
+        { id: 'm', name: '男', type: 'bar', data: rows.map(function (r) { return -r.m; }), barGap: '-100%', barMaxWidth: 22, itemStyle: { color: T.p.sex[0], borderRadius: [4, 0, 0, 4] },
+          label: { show: true, position: 'left', color: T.ink, fontSize: 12, formatter: function (p) { return fmt(rows[p.dataIndex].m); } }, universalTransition: true },
+        { id: 'f', name: '女', type: 'bar', data: rows.map(function (r) { return r.f; }), barMaxWidth: 22, itemStyle: { color: T.p.sex[1], borderRadius: [0, 4, 4, 0] },
+          label: { show: true, position: 'right', color: T.ink, fontSize: 12, formatter: function (p) { return fmt(p.value); } }, universalTransition: true }
+      ];
+    } else {
+      o.grid = { left: 8, right: 30, top: 62, bottom: 8, containLabel: true };
+      o.xAxis = Object.assign({ type: 'category', data: names, name: '癌別', nameLocation: 'end', nameGap: 6 }, ax,
+        { splitLine: { show: false }, axisLabel: { color: T.ink, fontSize: 12, interval: 0, rotate: 32, formatter: catLabel, rich: richSet } });
+      o.yAxis = Object.assign({ type: 'value', name: '死亡人數（人）', nameLocation: 'end' }, ax,
+        { nameTextStyle: { align: 'left', color: T.ink2, fontSize: 12 }, axisLabel: { color: T.muted, fontSize: 12, formatter: fmtAbs } });
+      o.series = [
+        { id: 'm', name: '男', type: 'bar', data: rows.map(function (r) { return r.m; }), barMaxWidth: 18, itemStyle: { color: T.p.sex[0], borderRadius: [3, 3, 0, 0] }, universalTransition: true },
+        { id: 'f', name: '女', type: 'bar', data: rows.map(function (r) { return r.f; }), barMaxWidth: 18, itemStyle: { color: T.p.sex[1], borderRadius: [3, 3, 0, 0] }, universalTransition: true }
+      ];
+    }
+    return o;
+  }
+
+  /* --- 4. age --- */
+  function ageShares(M) {
+    return M.ya.slice(S.y0, S.y1 + 1).map(function (row) {
+      var t = row.reduce(function (a, b) { return a + b; }, 0);
+      return { total: t, counts: row, share: row.map(function (v) { return t ? v / t : 0; }) };
+    });
+  }
+  function ageOption(M, T) {
+    var rows = ageShares(M), o = base(T), ax = axisCommon(T), area = S.view.age === 'area';
+    o.legend = { show: true, top: 0, left: 0, icon: 'roundRect', itemWidth: 12, itemHeight: 8, textStyle: { color: T.ink2, fontSize: 12 } };
+    o.grid = { left: 8, right: 36, top: narrow('age') ? 96 : 66, bottom: 8, containLabel: true };
+    o.xAxis = Object.assign({ type: 'category', data: xsRange(), name: '年度', nameLocation: 'end', nameGap: 8, boundaryGap: !area }, ax, { splitLine: { show: false } });
+    o.yAxis = Object.assign({ type: 'value', min: 0, max: 100, interval: 25, name: '占比（%）', nameLocation: 'end' }, ax,
+      { nameTextStyle: { align: 'left', color: T.ink2, fontSize: 12 }, axisLabel: { color: T.muted, fontSize: 12, formatter: '{value}%' } });
+    o.tooltip.formatter = function (ps) {
+      var r = rows[ps[0].dataIndex]; if (!r) return '';
+      var html = '<b>' + ps[0].axisValue + ' 年</b>（共 ' + fmt(r.total) + ' 人）';
+      ps.slice().reverse().forEach(function (p, i) {
+        var a = p.seriesIndex;
+        html += '<div>' + p.marker + ageLabel(a) + '　<b>' + (r.share[a] * 100).toFixed(1) + '%</b>　' + fmt(r.counts[a]) + ' 人</div>';
+      });
+      return html;
+    };
+    o.series = ageGroups.map(function (_, a) {
+      var color = T.p.age[a];
+      var s = {
+        id: 'age' + a, name: ageLabel(a), stack: 'age', data: rows.map(function (r) { return +(r.share[a] * 100).toFixed(2); }),
+        emphasis: { focus: 'series' }, universalTransition: true
+      };
+      if (area) {
+        Object.assign(s, { type: 'line', symbol: 'none', areaStyle: { color: color, opacity: 1 }, lineStyle: { width: 1.5, color: T.surface }, itemStyle: { color: color } });
+      } else {
+        Object.assign(s, { type: 'bar', barWidth: '72%', itemStyle: { color: color, borderColor: T.surface, borderWidth: 1 } });
+      }
+      return s;
+    });
+    return o;
+  }
+
+  /* ---------- tables ---------- */
+  function table(el, head, rows) {
+    var h = '<table><thead><tr>' + head.map(function (t) { return '<th>' + t + '</th>'; }).join('') + '</tr></thead><tbody>';
+    rows.forEach(function (r) { h += '<tr>' + r.map(function (c) { return '<td>' + c + '</td>'; }).join('') + '</tr>'; });
+    el.innerHTML = h + '</tbody></table>';
+  }
+
+  /* ---------- render ---------- */
+  var rafId = 0;
+  function schedule() { if (!rafId) rafId = requestAnimationFrame(function () { rafId = 0; render(); }); }
+
+  function showEmpty(on) {
+    ['trend', 'rank', 'sex', 'age'].forEach(function (id) {
+      var el = $('em-' + id);
+      el.classList.toggle('on', on);
+      if (on) el.innerHTML = '<div>沒有符合條件的資料。請放寬年度、癌別、縣市、性別或年齡層的篩選。</div><button type="button" data-reset>重設篩選</button>';
+    });
+  }
+
+  function render() {
+    var M = compute(), T = theme();
+    var empty = M.rangeTotal === 0;
+    var yLab = S.y0 === S.y1 ? years[S.y0] + ' 年' : years[S.y0] + '–' + years[S.y1] + ' 年';
+
+    /* KPI */
+    var t0 = M.total[S.y0], t1 = M.total[S.y1];
+    var male = 0, female = 0;
+    M.ks.forEach(function (p, k) { if (S.cancers.has(k)) { male += p[0]; female += p[1]; } });
+    $('k1l').textContent = '期間死亡總人數';
+    $('k1s').textContent = yLab + '累計';
+    $('k2l').textContent = years[S.y1] + ' 年死亡人數';
+    $('k2s').textContent = '所選區間的最後一年';
+    $('k3l').textContent = years[S.y1] + ' 年較 ' + years[S.y0] + ' 年';
+    $('k4l').textContent = '男女比';
+    if (empty) {
+      ['k1v', 'k2v', 'k3v', 'k4v'].forEach(function (id) { $(id).textContent = '—'; });
+      $('k3s').textContent = ''; $('k4s').textContent = '';
+    } else {
+      $('k1v').innerHTML = fmt(M.rangeTotal) + '<small>人</small>';
+      $('k2v').innerHTML = fmt(t1) + '<small>人</small>';
+      if (S.y0 === S.y1 || t0 === 0) { $('k3v').textContent = '—'; $('k3s').textContent = S.y0 === S.y1 ? '起訖為同一年，無法比較' : '起始年度沒有資料'; }
+      else {
+        var g = t1 / t0 - 1;
+        $('k3v').textContent = (g >= 0 ? '+' : '−') + Math.abs(g * 100).toFixed(1) + '%';
+        $('k3s').textContent = fmt(t0) + ' 人 → ' + fmt(t1) + ' 人';
+      }
+      if (female > 0) { $('k4v').innerHTML = (male / female).toFixed(2) + '<small>倍</small>'; $('k4s').textContent = '男 ' + fmt(male) + ' 人／女 ' + fmt(female) + ' 人（不受性別篩選影響）'; }
+      else { $('k4v').textContent = '—'; $('k4s').textContent = '女性為 0 人'; }
+    }
+
+    showEmpty(empty);
+    if (empty) {
+      ['trend', 'rank', 'sex', 'age'].forEach(function (id) { clearChart(id); $('in-' + id).textContent = ''; $('tb-' + id).innerHTML = ''; });
+      $('nt-trend').textContent = ''; $('nt-sex').textContent = '';
+      return;
+    }
+
+    /* 1 trend */
+    var tr = sliceR(M.total), peakI = 0;
+    tr.forEach(function (v, i) { if (v > tr[peakI]) peakI = i; });
+    $('in-trend').textContent = S.y0 === S.y1
+      ? years[S.y0] + ' 年共 ' + fmt(t1) + ' 人。'
+      : years[S.y0] + ' 至 ' + years[S.y1] + ' 年，每年死亡人數由 ' + fmt(t0) + ' 人' + (t1 >= t0 ? '增為 ' : '降為 ') + fmt(t1) + ' 人'
+        + (t0 ? '（' + (t1 >= t0 ? '+' : '−') + Math.abs((t1 / t0 - 1) * 100).toFixed(1) + '%）' : '') + '；最高是 ' + years[S.y0 + peakI] + ' 年的 ' + fmt(tr[peakI]) + ' 人。';
+    var list = S.view.trend === 'area' ? trendSeries(M) : [];
+    var folded = list.filter(function (s) { return s.fold && s.fold.length > 1; })[0];
+    $('nt-trend').textContent = folded ? FOLD_NAME + '＝' + folded.fold.map(function (k) { return cancers[k]; }).join('、') + '（所選癌別中未單獨上色者合計）。' : '';
+    push('trend', trendOption(M, T), 'trend|' + S.view.trend + '|' + T.surface);
+    var head = ['年度', '合計'].concat(cancers.filter(function (_, k) { return S.cancers.has(k); }));
+    var ks = []; cancers.forEach(function (_, k) { if (S.cancers.has(k)) ks.push(k); });
+    table($('tb-trend'), head, xsRange().map(function (y, j) {
+      return [y, fmt(tr[j])].concat(ks.map(function (k) { return fmt(M.yk[k][S.y0 + j]); }));
+    }));
+
+    /* 2 rank */
+    var ord = rankOrder(M), rtot = M.rank.reduce(function (a, b) { return a + b; }, 0);
+    if (rtot > 0) {
+      var top3 = ord.slice(0, 3).reduce(function (a, k) { return a + M.rank[k]; }, 0);
+      $('in-rank').textContent = '最多的是' + cancers[ord[0]] + '，占篩選結果的 ' + pct(M.rank[ord[0]] / rtot) + '；前三名合計 ' + pct(top3 / rtot) + '。';
+    } else $('in-rank').textContent = '';
+    push('rank', rankOption(M, T), 'rank|' + S.view.rank + '|' + T.surface);
+    table($('tb-rank'), ['名次', '癌別', '死亡人數', '占比'], ord.map(function (k, i) {
+      return [k === OTHER_K ? '—' : i + 1, cancers[k], fmt(M.rank[k]), pct(rtot ? M.rank[k] / rtot : 0)];
+    }));
+
+    /* 3 sex */
+    var sr = sexRows(M), flaggedNames = sr.filter(function (r) { return r.flag; }).map(function (r) { return r.name; });
+    $('in-sex').textContent = sr.length === 0 ? '' : (flaggedNames.length
+      ? '男性明顯偏高（達女性 ' + MALE_RATIO + ' 倍以上，不含性別特有癌別）：' + flaggedNames.join('、') + '。'
+      : '所選癌別中，沒有男性達女性 ' + MALE_RATIO + ' 倍以上者（性別特有癌別不計）。');
+    $('nt-sex').textContent = '▲ 表示男性人數達女性 ' + MALE_RATIO + ' 倍以上。攝護腺癌（男性特有）和乳癌（幾乎都是女性）標為「性別特有」，不參與判斷。此圖同時顯示男女，不受性別篩選影響。';
+    if (sr.length) push('sex', sexOption(M, T), 'sex|' + S.view.sex + '|' + T.surface); else clearChart('sex');
+    table($('tb-sex'), ['癌別', '男', '女', '合計', '男 ÷ 女'], sr.map(function (r) {
+      return [r.name + (r.flag ? ' ▲' : r.specific ? '（性別特有）' : ''), fmt(r.m), fmt(r.f), fmt(r.tot), r.specific ? '—' : ratioText(r)];
+    }));
+    $('em-sex').classList.toggle('on', sr.length === 0);
+    if (sr.length === 0) $('em-sex').innerHTML = '<div>沒有選取任何癌別。</div><button type="button" data-reset>重設篩選</button>';
+
+    /* 4 age */
+    var ar = ageShares(M), last = NA - 1, f0 = ar[0], f1 = ar[ar.length - 1];
+    if (S.y0 === S.y1) $('in-age').textContent = f1.total ? years[S.y1] + ' 年 85 歲以上占 ' + pct(f1.share[last]) + '。' : '';
+    else if (f0.total && f1.total) {
+      var d = f1.share[last] - f0.share[last];
+      $('in-age').textContent = '篩選期間 85 歲以上占比由 ' + pct(f0.share[last]) + '（' + years[S.y0] + '）' + (Math.abs(d) < 0.0005 ? '持平為 ' : d > 0 ? '升到 ' : '降到 ') + pct(f1.share[last]) + '（' + years[S.y1] + '）。';
+    } else $('in-age').textContent = '起始或結束年度沒有資料，無法比較占比。';
+    push('age', ageOption(M, T), 'age|' + S.view.age + '|' + T.surface);
+    table($('tb-age'), ['年度', '合計'].concat(ageGroups.map(function (_, a) { return ageLabel(a); })), xsRange().map(function (y, j) {
+      var r = ar[j];
+      return [y, fmt(r.total)].concat(r.counts.map(function (c, a) { return fmt(c) + '（' + pct(r.share[a]) + '）'; }));
+    }));
+  }
+
+  /* ---------- controls ---------- */
+  var yEl0 = $('y0'), yEl1 = $('y1');
+  [yEl0, yEl1].forEach(function (el) { el.min = 0; el.max = NY - 1; });
+  $('tickL').textContent = years[0]; $('tickR').textContent = years[NY - 1];
+  function syncRange() {
+    yEl0.value = S.y0; yEl1.value = S.y1;
+    var span = NY - 1, thumb = 10;
+    var l = S.y0 / span, r = S.y1 / span;
+    var fill = $('rangeFill');
+    fill.style.left = 'calc(' + (l * 100) + '% + ' + (thumb - l * 2 * thumb) + 'px)';
+    fill.style.width = 'calc(' + ((r - l) * 100) + '% - ' + ((r - l) * 2 * thumb) + 'px)';
+    $('yrLabel').textContent = years[S.y0] + ' – ' + years[S.y1] + ' 年（民國 ' + (years[S.y0] - 1911) + '–' + (years[S.y1] - 1911) + '）';
+    yEl0.style.zIndex = S.y0 >= NY - 2 ? 3 : 2; yEl1.style.zIndex = 2;
+  }
+  yEl0.addEventListener('input', function () { S.y0 = Math.min(+yEl0.value, S.y1); syncRange(); schedule(); });
+  yEl1.addEventListener('input', function () { S.y1 = Math.max(+yEl1.value, S.y0); syncRange(); schedule(); });
+
+  var msList = [];
+  function buildMS(root, key, noun, items, two) {
+    root.innerHTML =
+      '<button type="button" class="ms-btn" aria-haspopup="true" aria-expanded="false"><span class="t"></span></button>' +
+      '<div class="ms-panel" hidden><div class="ms-act"><button type="button" data-a="all">全選</button><button type="button" data-a="none">清除</button></div>' +
+      '<ul class="ms-list' + (two ? ' two' : '') + '">' + items.map(function (n, i) {
+        return '<li><label><input type="checkbox" value="' + i + '" checked> ' + n + '</label></li>';
+      }).join('') + '</ul></div>';
+    var btn = root.querySelector('.ms-btn'), panel = root.querySelector('.ms-panel');
+    var api = {
+      root: root, close: function () { panel.hidden = true; btn.setAttribute('aria-expanded', 'false'); },
+      sync: function () {
+        root.querySelectorAll('input').forEach(function (c) { c.checked = S[key].has(+c.value); });
+        var n = S[key].size, t;
+        if (n === items.length) t = '全部 ' + n + ' ' + noun;
+        else if (n === 0) t = '未選取';
+        else if (n <= 2) t = items.filter(function (_, i) { return S[key].has(i); }).join('、');
+        else t = '已選 ' + n + ' ' + noun;
+        btn.querySelector('.t').textContent = t;
+      }
+    };
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var open = panel.hidden;
+      msList.forEach(function (m) { m.close(); });
+      panel.hidden = !open; btn.setAttribute('aria-expanded', String(open));
+    });
+    panel.addEventListener('click', function (e) { e.stopPropagation(); });
+    panel.addEventListener('change', function (e) {
+      var c = e.target; if (c.type !== 'checkbox') return;
+      if (c.checked) S[key].add(+c.value); else S[key].delete(+c.value);
+      api.sync(); schedule();
+    });
+    root.querySelector('.ms-act').addEventListener('click', function (e) {
+      var a = e.target.getAttribute('data-a'); if (!a) return;
+      S[key] = a === 'all' ? all(items.length) : new Set();
+      api.sync(); schedule();
+    });
+    msList.push(api);
+    return api;
+  }
+  var msCancer = buildMS($('msCancer'), 'cancers', '類', cancers, false);
+  var msCounty = buildMS($('msCounty'), 'counties', '個', counties, true);
+  document.addEventListener('click', function () { msList.forEach(function (m) { m.close(); }); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') msList.forEach(function (m) { m.close(); }); });
+
+  var chipsAge = $('chipsAge');
+  chipsAge.innerHTML = ageGroups.map(function (g, i) { return '<button type="button" data-i="' + i + '" aria-pressed="true" title="' + ageLabel(i) + '">' + g + '</button>'; }).join('');
+  chipsAge.addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    var i = +b.getAttribute('data-i');
+    if (S.ages.has(i)) S.ages.delete(i); else S.ages.add(i);
+    syncUI(); schedule();
+  });
+
+  $('segSex').addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    var v = b.getAttribute('data-v'); S.sex = v === 'all' ? 'all' : +v;
+    syncUI(); schedule();
+  });
+
+  document.querySelectorAll('.seg[data-chart]').forEach(function (seg) {
+    seg.addEventListener('click', function (e) {
+      var b = e.target.closest('button'); if (!b) return;
+      S.view[seg.getAttribute('data-chart')] = b.getAttribute('data-v');
+      syncUI(); schedule();
+    });
+  });
+
+  function resetFilters() {
+    S.y0 = 0; S.y1 = NY - 1; S.cancers = all(NK); S.counties = all(NC); S.ages = all(NA); S.sex = 'all';
+    syncUI(); schedule();
+  }
+  $('btnReset').addEventListener('click', resetFilters);
+  document.body.addEventListener('click', function (e) { if (e.target.closest && e.target.closest('[data-reset]')) resetFilters(); });
+
+  function syncUI() {
+    syncRange(); msCancer.sync(); msCounty.sync();
+    chipsAge.querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', String(S.ages.has(+b.getAttribute('data-i')))); });
+    $('segSex').querySelectorAll('button').forEach(function (b) {
+      var v = b.getAttribute('data-v'); b.setAttribute('aria-pressed', String(String(S.sex) === v));
+    });
+    document.querySelectorAll('.seg[data-chart]').forEach(function (seg) {
+      var cur = S.view[seg.getAttribute('data-chart')];
+      seg.querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-v') === cur)); });
+    });
+  }
+
+  /* click rank bar → select that cancer */
+  function toggleCancer(k) {
+    if (k < 0) return;
+    if (S.cancers.size === NK) S.cancers = new Set([k]);
+    else if (S.cancers.has(k)) { S.cancers.delete(k); if (S.cancers.size === 0) S.cancers = all(NK); }
+    else S.cancers.add(k);
+    syncUI(); schedule();
+  }
+  var rankChart = chartOf('rank');
+  if (rankChart) rankChart.on('click', function (e) {
+    var name = e.componentType === 'series' ? e.name : (e.componentType === 'yAxis' || e.componentType === 'xAxis') ? e.value : null;
+    if (name != null) toggleCancer(cancers.indexOf(name));
+  });
+
+  if (window.matchMedia) {
+    var mq = matchMedia('(prefers-color-scheme: dark)');
+    var onScheme = function () { Object.keys(lastKey).forEach(function (k) { lastKey[k] = null; }); schedule(); };
+    if (mq.addEventListener) mq.addEventListener('change', onScheme); else if (mq.addListener) mq.addListener(onScheme);
+  }
+
+  /* ---------- footer ---------- */
+  var m = D.meta, src = m.source;
+  $('ftNotes').innerHTML = m.notes.map(function (t) { return '<li>' + t + '</li>'; }).join('');
+  $('ftSrc').innerHTML =
+    '<dt>資料名稱</dt><dd>' + src.name + '</dd>' +
+    '<dt>提供機關</dt><dd>' + src.agency + '</dd>' +
+    '<dt>資料集頁面</dt><dd><a href="' + src.datasetUrl + '" target="_blank" rel="noopener">' + src.datasetUrl + '</a></dd>' +
+    '<dt>資料期間</dt><dd>' + m.period.from + '–' + m.period.to + ' 年（民國 ' + m.period.rocFrom + '–' + m.period.rocTo + ' 年）</dd>' +
+    '<dt>下載日期</dt><dd>' + src.downloadedOn + '</dd>' +
+    '<dt>授權</dt><dd>' + src.license + '</dd>';
+  $('ftCancers').innerHTML = '<thead><tr><th>圖中名稱</th><th>ICD-10</th><th>原始分類名稱</th></tr></thead><tbody>' +
+    m.cancers.map(function (c) {
+      return '<tr><td>' + c.name + '</td><td style="text-align:left">' + c.icd10 + '</td><td style="text-align:left;white-space:normal">' + c.originalNames.join('、') + '</td></tr>';
+    }).join('') + '</tbody>';
+
+  syncUI();
+  render();
+})();
+</script>
+</body>
+</html>

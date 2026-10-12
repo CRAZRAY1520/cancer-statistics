@@ -1,75 +1,104 @@
-# 東華大學在學與休學人數 BI Demo（Template）
+# 台灣癌症死亡人數與趨勢 2008–2025
 
-用 AI（Claude Code）把學校公開的統計報表，做成一個可以互動篩選的 BI 網頁，並用 GitHub Pages 對外發佈。
+用衛生福利部統計處的死因統計，整理 2008 至 2025 年台灣惡性腫瘤（癌症）的死亡人數，做成可以互動篩選的 BI 網頁。
 
-- 資料範圍：國立東華大學 111 學年度上學期 至 114 學年度上學期，共 7 個學期
-- 資料性質：公開資料，原始檔與 ETL 後的資料都放在這個 repo，歡迎直接取用
+**網站：<https://crazray1520.github.io/cancer-statistics/>**
 
-## 課堂流程（90 分鐘）
+- 只有死亡人數，沒有死亡率。各縣市人口數和年齡結構不同，不能直接用人數比較縣市的癌症風險。
+- 這是死亡資料，不是癌症發生（新診斷）資料。
 
-| 段 | 內容 | 時間 |
-|---|---|---|
-| [P0](prompts/P0-開始.md) | 用這個 template 建立自己的 repo，啟動 Claude Code | 10 分 |
-| [P1](prompts/P1-ETL.md) | 用 AI 做 ETL：把一份 Excel 報表轉成整齊的 CSV，並驗證 | 12 分 |
-| [P2](prompts/P2-做出BI網頁.md) | 請 AI 做出互動 BI 網頁 | 35 分 |
-| [P3](prompts/P3-發佈.md) | push 到 GitHub，開啟 GitHub Pages | 10 分 |
-| [課後練習](prompts/課後練習.md) | 完成課堂內容、用 AI 對 PDF 做 ETL、思考休學比例的分母（不評分） | — |
-| [作業](prompts/作業.md) | 自己找資料做 BI 網頁並發佈，由 AI 評分（[評分說明](https://github.com/samsonchen/ai_workshop_assets/tree/main/chapter_2)） | — |
+## 資料來源
 
-每一段的 prompt 都可以直接複製貼到 Claude Code。
+| 項目 | 內容 |
+|---|---|
+| 資料名稱 | 死因統計(138分類)，按縣市及五齡分 |
+| 提供機關 | 衛生福利部統計處 |
+| 資料集頁面 | <https://data.gov.tw/dataset/46077> |
+| 下載網址 | <https://www.mohw.gov.tw/dl-83420-8ac74f07-080f-4b94-8453-ce2a8ee99f8b.html> |
+| 資料期間 | 民國 97–114 年，即西元 2008–2025 年 |
+| 下載日期 | 2026-10-12 |
+| 授權 | 政府資料開放授權條款－第 1 版 |
 
-## 目錄
+原檔 SHA-256 和更詳細的紀錄在 [`raw/SOURCES.md`](raw/SOURCES.md)。
+
+## 資料夾結構
 
 ```
-東華大學統計資料/        原始檔（學校公告的 XLS 與 PDF，未經修改）
-  在學人數統計表/        7 個學期的在學學生人數（.xls）
-  休學人數統計表/        7 個學期的休學人數（.pdf）
-data/                    ETL 後的標準資料（CSV，UTF-8，可直接用 Excel 開）
-  enrollment.csv         在學人數
-  leave.csv              休學人數
-  dept_mapping.csv       系所對照表
-scripts/validate.py      驗證你 ETL 產出的資料是否和標準資料一致
-prompts/                 課堂 prompt
-docs/                    （你在 P2 做出來的網頁會放在這裡，GitHub Pages 從這裡發佈）
+raw/                      原始資料（未修改）
+  死因統計138分類_縣市五齡分_1150831.zip    下載的原檔
+  extracted/              ZIP 解壓內容：opendata97～114.csv、對照表.xlsx 等
+  SOURCES.md              來源網址、下載日期、SHA-256
+work/
+  etl_cancer.py           ETL：raw → data/
+  build_data.py           data/ → docs/data.js，並核對
+data/                     整理後的資料
+  cancer_deaths.csv       主要資料
+  cancer_mapping.csv      癌別對照（原始名稱、ICD-10、縮短名稱）
+  county_mapping.csv      縣市代碼對照
+scripts/
+  validate_cancer.py      驗證 data/ 與原始檔一致
+docs/                     網頁（GitHub Pages 從這裡發佈）
+  index.html              BI 網頁
+  data.js                 網頁用的資料與 metadata
+prompts/                  課程 prompt（P0–P3 與作業說明）
 ```
 
-## 資料欄位
+## 流程
 
-**data/enrollment.csv**（每列：學期 × 系所 × 學制 × 性別）
+```mermaid
+flowchart LR
+    raw["raw/extracted/<br/>opendata97～114.csv<br/>對照表.xlsx"]
+    etl["work/etl_cancer.py"]
+    data[("data/<br/>cancer_deaths.csv<br/>cancer_mapping.csv<br/>county_mapping.csv")]
+    val{"scripts/<br/>validate_cancer.py"}
+    build["work/build_data.py"]
+    js["docs/data.js"]
+    html["docs/index.html"]
+    pages(["GitHub Pages"])
 
-| 欄位 | 說明 |
-|---|---|
-| semester | 學期，例如 `114-1` |
-| college | 學院（以 114-1 的組織為準） |
-| dept | 系所標準名稱（以 114-1 為準，見 dept_mapping.csv） |
-| dept_raw | 報表上的原始系所名稱 |
-| degree | 學位別：學士、碩士、博士（碩士在職專班歸入碩士） |
-| program_raw | 原始學制：學士班、碩士班、碩士在職專班、博士班 |
-| gender | 女、男 |
-| count | 在學人數 |
+    raw --> etl --> data
+    data -.->|"逐年、逐縣市、逐癌別核對"| val
+    raw -.-> val
+    data --> build --> js --> html --> pages
+```
 
-**data/leave.csv**（每列：學期 × 系所 × 學制 × 性別 × 身份類別 × 休學原因；兩個人數都是 0 的列已省略）
+ETL 做的事：
 
-| 欄位 | 說明 |
-|---|---|
-| semester, college, dept, dept_raw, degree, program_raw, gender | 同上 |
-| identity | 身份類別：一般生(非原住民族)、原住民族學生、其他類學生 |
-| reason | 休學原因（14 種自請休學原因 + 勒令休學的違反校規、其他；勒令休學的「其他」這 7 學期都是 0，所以不會出現） |
-| reason_group | 自請休學、勒令休學 |
-| new_leave | 學期間休學人數（這學期新辦休學） |
-| on_leave_end | 於學期底處於休學狀態之人數 |
+1. 只讀 `opendata*.csv`，只保留死因代碼 007～043（惡性腫瘤），排除 044（其餘腫瘤）。
+2. 癌別：肝細胞癌、肝內膽管癌、其他肝及肝內膽管惡性腫瘤（014、015、016）合併為「肝癌」。排除「其他惡性腫瘤」（043）後，依 2025 年死亡人數取前 10 大，名稱縮短成常用名稱；其餘歸為「其他癌症」。對照寫在 `data/cancer_mapping.csv`。
+3. 縣市統一成 2011 年後的 22 縣市：舊臺中縣＋臺中市、臺南縣＋臺南市、高雄縣＋高雄市各自合併，臺北縣稱新北市，桃園縣稱桃園市，名稱一律用「臺」。對照寫在 `data/county_mapping.csv`。縣市代碼對照是從對照表的鄉鎮代碼前兩碼推得，不是官方縣市對照表。
+4. 年齡合併成 0-14、15-44、45-64、65-74、75-84、85+ 六組。
+5. 性別依對照表轉成「男」「女」，年度由民國年加 1911 轉成西元。
 
-**data/dept_mapping.csv**
+輸出 `data/cancer_deaths.csv`，欄位是 `year, county, cancer, sex, age_group, deaths`，每列是 年度 × 縣市 × 癌別 × 性別 × 年齡組 的死亡人數。原始檔只記錄有死亡的組合，所以沒有人數為 0 的列。
 
-| 欄位 | 說明 |
-|---|---|
-| dept | 系所標準名稱 |
-| college | 所屬學院 |
-| aliases | 過去使用的名稱，以 `;` 分隔 |
+## 怎麼重跑與驗證
 
-## 使用前請注意
+需要 [uv](https://docs.astral.sh/uv/)（會自動安裝 pandas、openpyxl）。在專案根目錄執行：
 
-- 系所對照（改名、停招後由哪個系承接）是人工判斷，可能有誤。
-- 休學比例在網頁上定義為「學期間休學人數 ÷ 在學人數」。分母怎麼選會影響結論，可以自己想想看其他算法。
-- 休學人數統計表的上學期資料，在隔年 3 月才填報，所以最新一學期的休學資料會比在學人數晚出現。
-- 在學人數不含休學中的學生（依教育部定義）。
+```
+uv run work/etl_cancer.py          # 產生 data/*.csv
+uv run scripts/validate_cancer.py  # 驗證
+uv run work/build_data.py          # 產生 docs/data.js 並核對
+```
+
+`validate_cancer.py` 不使用 ETL 的邏輯，直接重讀原始檔，檢查：
+
+- 每一年輸出的死亡人數總和，等於原始檔死因 007～043 的總和。
+- 每個縣市每年合併前後的人數一致。
+- 每年每個癌別的人數與原始檔一致。
+- 沒有空值、沒有負數、2008–2025 年份齊全、縣市剛好 22 個。
+- 會印出每年癌症死亡總數，可以和衛福部公布的數字核對。
+
+`build_data.py` 會把 `docs/data.js` 還原成表格，和 `cancer_deaths.csv` 逐格比對，並確認 2008 年為 38,913 人、2025 年為 54,838 人。
+
+在瀏覽器雙擊 `docs/index.html` 就能打開網頁。圖表使用 ECharts（從 cdnjs 載入），所以需要網路。
+
+## 限制說明
+
+- 只計算死亡人數，沒有計算死亡率。各縣市人口結構不同，也沒有考慮人口老化，不能直接比較縣市風險。年齡結構圖中 85 歲以上占比上升，反映的是人口老化，不代表各年齡的癌症風險改變。
+- 這是死亡統計，不是癌症發生資料。要看發生率，需要衛福部國民健康署的癌症登記資料，本專案沒有使用。
+- 2008–2010 年的原始資料沿用縣市改制前的行政區，已合併為現行縣市；這個對應由代碼推得，可能有誤。
+- 癌別是依死因 138 分類整理。「其他癌症」是未單獨列出的多種癌別合計，不參與排名。
+- 男女比較中，攝護腺癌（男性特有）和乳癌（幾乎都是女性）標為「性別特有」，不判斷男性是否偏高。
+- 癌症指惡性腫瘤，不含「其餘腫瘤」（D00–D48）。
